@@ -9,32 +9,17 @@ import UIKit
 
 class TodoListViewController: UITableViewController {
 
+    let filePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("items.plist")
+    
     var array = [DataModel]() {
         didSet {
-            print("reload")
             tableView.reloadData()
         }
     }
-    let defalts = UserDefaults.standard
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        let item = DataModel()
-        item.title = "Heo"
-        array.append(item)
-        
-        let item2 = DataModel()
-        item2.title = "Hello"
-        array.append(item2)
-        
-        let item3 = DataModel()
-        item3.title = "Hey"
-        array.append(item3)
-        
-//        if let item = defalts.array(forKey: "TodoList") as? [DataModel] {
-//            array = item
-//        }
+        loadItems()
     }
 
     
@@ -48,25 +33,15 @@ class TodoListViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TodoListCell", for: indexPath)
         cell.textLabel?.text = array[indexPath.row].title
-        if array[indexPath.row].done == true {
-            cell.accessoryType = .checkmark
-        } else {
-            cell.accessoryType = .none
-        }
+        cell.accessoryType = array[indexPath.row].done ? .checkmark : .none
         return cell
     }
 
     //MARK: - Delegate
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
-//        if tableView.cellForRow(at: indexPath)?.accessoryType == .checkmark {
-//            tableView.cellForRow(at: indexPath)?.accessoryType = .none
-//        } else {
-//            tableView.cellForRow(at: indexPath)?.accessoryType = .checkmark
-//        }
-            
         array[indexPath.row].done.toggle()
-        tableView.reloadData()
+        saveItems()
         tableView.deselectRow(at: indexPath, animated: true)
     }
     
@@ -81,7 +56,7 @@ class TodoListViewController: UITableViewController {
                 let item = DataModel()
                 item.title = textField.text!
                 self.array.append(item)
-                self.defalts.set(self.array, forKey: "TodoList")
+                self.saveItems()
             }
         }
         alert.addTextField { textF in
@@ -93,6 +68,28 @@ class TodoListViewController: UITableViewController {
         present(alert, animated: true, completion: nil)
     }
     
+    func saveItems() {
+        let encode = PropertyListEncoder()
+        do {
+            let data = try encode.encode(array)
+            try data.write(to: filePath!)
+        } catch {
+            print(error.localizedDescription)
+        }
+        tableView.reloadData()
+    }
+    
+    func loadItems() {
+        if let data = try? Data(contentsOf: filePath!) {
+            let decoder = PropertyListDecoder()
+            do {
+                array = try decoder.decode([DataModel].self, from: data)
+            } catch {
+                print(error.localizedDescription)
+            }
+        }
+        
+    }
 }
 
 
